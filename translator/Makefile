@@ -31,17 +31,17 @@ include ../java_deps/jars.mk
 CLASS_DIR = $(BUILD_DIR)/classes
 TEST_DIR = $(BUILD_DIR)/test
 
-SOURCEPATH = $(CWD):$(JAVA_SOURCE_DIR)
+SOURCEPATH = $(CWD)\;$(JAVA_SOURCE_DIR)
 BASE_PACKAGE = com/google/devtools/j2objc
 
 DIST_DEPS = $(JSR305_JAR) j2objc_annotations.jar
 INTERNAL_DEPS = $(ECLIPSE_JARS) $(GUAVA_JAR) $(ASM_JAR) $(JSR305_JAR) $(JAVAC_JAR)
 JAR_DEPS_DIST = $(DIST_DEPS:%=$(DIST_JAR_DIR)/%) $(INTERNAL_DEPS:%=$(JAVA_DEPS_JAR_DIR)/%)
-JAR_DEPS_PATH = $(subst $(eval) ,:,$(strip $(JAR_DEPS_DIST)))
+JAR_DEPS_PATH = $(subst $(eval) ,\;,$(strip $(JAR_DEPS_DIST)))
 JUNIT_JAR_DIST = $(DIST_JAR_DIR)/$(JUNIT_JAR)
 
-CLASSPATH = $(CLASS_DIR):$(JAR_DEPS_PATH)
-TEST_CLASSPATH = $(TEST_DIR):$(CLASS_DIR):$(JAR_DEPS_PATH):$(JUNIT_JAR_DIST)
+CLASSPATH = $(CLASS_DIR)\;$(JAR_DEPS_PATH)
+TEST_CLASSPATH = $(TEST_DIR)\;$(CLASS_DIR)\;$(JAR_DEPS_PATH)\;$(JUNIT_JAR_DIST)
 
 MAIN_CLASS = com.google.devtools.j2objc.J2ObjC
 MANIFEST = $(BUILD_DIR)/manifest.mf
@@ -320,7 +320,7 @@ TEST_RESOURCE_FILES = $(TEST_RESOURCES:%=$(TEST_DIR)/%)
 
 # Files in dependent jars that aren't needed in combined jar.
 UNUSED_JAR_CONTENTS = \
-  $(CLASS_DIR)/[A-Z]* \
+  $(CLASS_DIR)/META-INF \
   $(CLASS_DIR)/[ahps]* \
   $(CLASS_DIR)/about_files \
   $(CLASS_DIR)/ant_tasks \
@@ -334,10 +334,12 @@ default: $(J2OBJC_JAR)
 $(J2OBJC_JAR): $(MANIFEST) $(RESOURCE_FILES) $(JAVA_SOURCES_FULL) \
   | $(BUILD_DIR) java_deps_dist annotations_dist
 	@echo building j2objc jar
+	@echo $(CLASSPATH)
 	@javac -Xlint:unchecked -sourcepath $(SOURCEPATH) -classpath $(CLASSPATH) \
 	    -d $(CLASS_DIR) -encoding UTF-8 -source 1.7 -target 1.7 -nowarn \
 	    $(JAVA_SOURCES_FULL)
 	@for lib in $(JAR_DEPS_DIST); do unzip -oq $$lib -d $(CLASS_DIR); done
+	@echo $(UNUSED_JAR_CONTENTS)
 	@rm -rf $(UNUSED_JAR_CONTENTS)
 	@jar cfm $@-combined $(MANIFEST) -C $(CLASS_DIR) .
 	@java -jar $(JAVA_DEPS_JAR_DIR)/$(JARJAR) process jarjar.rules $@-combined $@
